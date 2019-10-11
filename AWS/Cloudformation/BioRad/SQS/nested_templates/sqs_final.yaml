@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SQS template based on the given Terraform module
+
+Parameters:
+  Region:
+    Default: us-east-1
+    Type: String
+  RegionShortname:
+    Type: String
+  Stage:
+    Type: String
+  Environment:
+    Description: Environment Name where this resource is going to deployed
+    Type: String
+  Create:
+    Description: Whether to create SQS queue
+    Type: 'String'
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  SQSQueueWithKms:
+    Description: Whether to create SQS queue with KMS encryption
+    Type: 'String'
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  Name:
+    Description: This is the human-readable name of the queue, incase of fifo queue append .fifo to the name of the queue. If omitted, Cloudformation will assign a random name.
+    Type: String
+  visibilityTimeoutSeconds:
+    Description: The visibility timeout for the queue. An integer from 0 to 43200 (12 hours)
+    Type: Number
+    Default: 30
+  MessageRetentionSeconds:
+    Description: The number of seconds Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute) to 1209600 (14 days)
+    Type: Number
+    Default: 345600
+  MaxMessageSize:
+    Description: The limit of how many bytes a message can contain before Amazon SQS rejects it. An integer from 1024 bytes (1 KiB) up to 262144 bytes (256 KiB)
+    Type: Number
+    Default: 262144
+  DelaySeconds:
+    Description: The time in seconds that the delivery of all messages in the queue will be delayed. An integer from 0 to 900 (15 minutes)
+    Type: Number
+    Default: 0
+  ReceiveWaitTimeSeconds:
+    Description: The time for which a ReceiveMessage call will wait for a message to arrive (long polling) before returning. An integer from 0 to 20 (seconds)
+    Type: Number
+    Default: 0
+  Policy:
+    Description: The JSON policy for the SQS queue
+    Type: String
+  DeadLetterTargetArn:
+    Description: The Dead Letter Queue ARN, see AWS docs.
+    Type: String
+  MaxReceiveCount:
+    Description: It is optional to specify maxReceiveCount
+    Type: Number
+    Default: 5
+  FifoQueue:
+    Description: Boolean designating a FIFO queue
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'true'
+  ContentBasedDeduplication:
+    Description: Enables content-based deduplication for FIFO queues
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'true'
+  KMSMasterKeyID:
+    Description: The ID of an AWS-managed customer master key (CMK) for Amazon SQS or a custom CMK
+    Type: String
+    Default: ''  
+  KMSDataKeyReusePeriodSeconds:
+    Description: The length of time, in seconds, for which Amazon SQS can reuse a data key to encrypt or decrypt messages before calling AWS KMS again. An integer representing seconds, between 60 seconds (1 minute) and 86,400 seconds (24 hours)
+    Type: Number
+    Default: 300 
+
+Conditions:
+  CreateQueue: !Equals [ !Ref Create, 'true' ]
+  IsFifo:
+    !Equals [!Ref FifoQueue, 'true']
+  CreateSQSQueueWithKms:
+    !Equals [!Ref SQSQueueWithKms, 'true']
+  IsDeadLetterTargetArn:
+    !Not [!Equals [!Ref DeadLetterTargetArn, '']]
+
+Resources:
+  SQSResource:
+    Type: AWS::SQS::Queue
+    Condition : CreateQueue
+    Properties:
+
+      QueueName: !Ref Name
+
+      VisibilityTimeout: !Ref visibilityTimeoutSeconds
+      MessageRetentionPeriod: !Ref MessageRetentionSeconds
+      MaximumMessageSize: !Ref MaxMessageSize
+      DelaySeconds: !Ref DelaySeconds
+      ReceiveMessageWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+
+      RedrivePolicy:
+        !If
+        - IsDeadLetterTargetArn
+        - deadLetterTargetArn: !Ref DeadLetterTargetArn
+          maxReceiveCount: !Ref MaxReceiveCount
+        - !Ref AWS::NoValue
+      FifoQueue: 
+        !If
+        - IsFifo
+        - true
+        - !Ref AWS::NoValue
+      ContentBasedDeduplication:
+        !If 
+        - IsFifo
+        - !Ref ContentBasedDeduplication
+        - !Ref AWS::NoValue
+      KMSMasterKeyID: 
+        !If 
+        - CreateSQSQueueWithKms
+        - !Ref KMSMasterKeyID
+        - !Ref AWS::NoValue
+      KMSDataKeyReusePeriodSeconds: 
+        !If 
+        - CreateSQSQueueWithKms
+        - !Ref KMSDataKeyReusePeriodSeconds
+        - !Ref AWS::NoValue
+  MyQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: BioRadCustomPolicy
+        Statement:
+        - Sid: Queu-AllActions
+          Effect: Allow
+          Principal: '*'
+          Action: ['sqs:*']
+          Resource: !GetAtt SQSResource.Arn
+      Queues: 
+        - !Ref SQSResource
+
+Outputs:
+   QueueUrl:
+    Description: 'The URL for the created Amazon SQS queue'
+    Value: !Ref SQSResource
+    Condition : CreateQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-QueueUrl'
+   QueueARN:
+    Description: 'The ARN for the created Amazon SQS queue'
+    Condition : CreateQueue
+    Value:
+      !GetAtt
+      - SQSResource
+      - Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-QueueARN'

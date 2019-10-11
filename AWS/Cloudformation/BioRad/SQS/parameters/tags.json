@@ -1,0 +1,10 @@
+[
+    {
+      "Key" : "Name",
+      "Value" : "SQSQueue"
+   },
+   {
+      "Key" : "Name2",
+      "Value" : "SQSQueue2"
+   }
+]

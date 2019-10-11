@@ -1,0 +1,311 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SQS template based on the given Terraform module
+
+Parameters:
+  Region:
+    Default: us-east-1
+    Type: String
+  RegionShortname:
+    Type: String
+  Stage:
+    Type: String
+  Environment:
+    Description: Environment Name where this resource is going to deployed
+    Type: String
+  Create:
+    Description: Whether to create SQS queue
+    Type: 'String'
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  SQSQueueWithKms:
+    Description: Whether to create SQS queue with KMS encryption
+    Type: 'String'
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  Name:
+    Description: This is the human-readable name of the queue, incase of fifo queue append .fifo to the name of the queue. If omitted, Cloudformation will assign a random name.
+    Type: String
+  visibilityTimeoutSeconds:
+    Description: The visibility timeout for the queue. An integer from 0 to 43200 (12 hours)
+    Type: Number
+    Default: 30
+  MessageRetentionSeconds:
+    Description: The number of seconds Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute) to 1209600 (14 days)
+    Type: Number
+    Default: 345600
+  MaxMessageSize:
+    Description: The limit of how many bytes a message can contain before Amazon SQS rejects it. An integer from 1024 bytes (1 KiB) up to 262144 bytes (256 KiB)
+    Type: Number
+    Default: 262144
+  DelaySeconds:
+    Description: The time in seconds that the delivery of all messages in the queue will be delayed. An integer from 0 to 900 (15 minutes)
+    Type: Number
+    Default: 0
+  ReceiveWaitTimeSeconds:
+    Description: The time for which a ReceiveMessage call will wait for a message to arrive (long polling) before returning. An integer from 0 to 20 (seconds)
+    Type: Number
+    Default: 0
+  Policy:
+    Description: The JSON policy for the SQS queue
+    Type: String
+  DeadLetterTargetArn:
+    Description: The Dead Letter Queue ARN, see AWS docs.
+    Type: String
+  MaxReceiveCount:
+    Description: It is optional to specify maxReceiveCount
+    Type: Number
+    Default: 5
+  FifoQueue:
+    Description: Boolean designating a FIFO queue
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'true'
+  ContentBasedDeduplication:
+    Description: Enables content-based deduplication for FIFO queues
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Default: 'true'
+  KMSMasterKeyID:
+    Description: The ID of an AWS-managed customer master key (CMK) for Amazon SQS or a custom CMK
+    Type: String
+    Default: ''  
+  KMSDataKeyReusePeriodSeconds:
+    Description: The length of time, in seconds, for which Amazon SQS can reuse a data key to encrypt or decrypt messages before calling AWS KMS again. An integer representing seconds, between 60 seconds (1 minute) and 86,400 seconds (24 hours)
+    Type: Number
+    Default: 300
+
+Mappings:
+  RegionShortname:
+    eu-central-1:
+     RN: ec1
+    eu-north-1:
+     RN: en1
+    eu-west-1:
+     RN: ew1
+    eu-west-2:
+     RN: ew2
+    eu-west-3:
+     RN: ew3
+    us-east-1:
+     RN: ue1
+    us-east-2:
+     RN: ue2
+    us-west-1:
+     RN: uw1
+    us-west-2:
+     RN: uw2
+    sa-east-1:
+     RN: se1
+    ap-northeast-1:
+     RN: ane1
+    ap-northeast-2:
+     RN: ane2
+    ap-south-1:
+     RN: as1
+    ap-southeast-1:
+     RN: ase1
+    ap-southeast-2:
+     RN: ase2
+
+Conditions:
+  CreateQueue: !Equals [ !Ref Create, 'true' ]
+  IsFifo:
+    !Equals [!Ref FifoQueue, 'true']
+
+Resources:
+  PMSProcessingqueueQueueDLQ:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','pmsprocessingqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','pmsprocessingqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        DeadLetterTargetArn: !Ref DeadLetterTargetArn
+        MaxReceiveCount: !Ref MaxReceiveCount
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+  LabtestProcessingqueueQueueDLQ:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','labtestprocessingqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','labtestprocessingqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        DeadLetterTargetArn: !Ref DeadLetterTargetArn
+        MaxReceiveCount: !Ref MaxReceiveCount
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+  ReportGenerationqueueQueueDLQ:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','reportgenerationqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','reportgenerationqueue_dlq','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        DeadLetterTargetArn: !Ref DeadLetterTargetArn
+        MaxReceiveCount: !Ref MaxReceiveCount
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+  PMSProcessingqueueQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','pmsprocessingqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','pmsprocessingqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+        DeadLetterTargetArn: !GetAtt PMSProcessingqueueQueueDLQ.Outputs.QueueARN
+        MaxReceiveCount: !Ref MaxReceiveCount
+  LabtestProcessingqueueQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','labtestprocessingqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','labtestprocessingqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+        DeadLetterTargetArn: !GetAtt LabtestProcessingqueueQueueDLQ.Outputs.QueueARN
+        MaxReceiveCount: !Ref MaxReceiveCount
+  ReportGenerationqueueQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://templatebucketdhc.s3.us-east-2.amazonaws.com/sqs_final.yaml"
+      Parameters:
+        Region: !Ref Region
+        RegionShortname: !Ref RegionShortname
+        Stage: !Ref Stage
+        Environment: !Ref Environment
+        Create: !Ref Create
+        SQSQueueWithKms: !Ref SQSQueueWithKms
+        Name: !If [IsFifo, !Join ['', [!Ref 'Environment', '-', 'sqs', '-','reportgenerationqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN], '.fifo']], 
+        !Join ['', [!Ref 'Environment', '-', 'sqs', '-','reportgenerationqueue','-',!FindInMap [RegionShortname, !Ref "AWS::Region", RN]]]]
+        visibilityTimeoutSeconds: 600
+        MessageRetentionSeconds: 432000
+        MaxMessageSize: !Ref MaxMessageSize
+        DelaySeconds: !Ref DelaySeconds
+        ReceiveWaitTimeSeconds: !Ref ReceiveWaitTimeSeconds
+        Policy: !Ref Policy
+        FifoQueue: !Ref FifoQueue
+        ContentBasedDeduplication: !Ref ContentBasedDeduplication
+        KMSMasterKeyID: !Ref KMSMasterKeyID
+        KMSDataKeyReusePeriodSeconds: !Ref KMSDataKeyReusePeriodSeconds
+        DeadLetterTargetArn: !GetAtt ReportGenerationqueueQueueDLQ.Outputs.QueueARN
+        MaxReceiveCount: !Ref MaxReceiveCount
+
+Outputs:
+   PMSProcessingqueueQueueURL:
+    Description: 'PMSProcessingqueueQueue URL'
+    Value: !GetAtt PMSProcessingqueueQueue.Outputs.QueueUrl
+    Condition : CreateQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-PMSProcessingqueueQueueURL'
+   PMSProcessingqueueQueueARN:
+    Description: 'PMSProcessingqueueQueue ARN'
+    Condition : CreateQueue
+    Value: !GetAtt PMSProcessingqueueQueue.Outputs.QueueARN
+    Export:
+      Name: !Sub '${AWS::StackName}-PMSProcessingqueueQueueARN'
+   LabtestProcessingqueueQueueURL:
+    Description: 'LabtestProcessingqueueQueue URL'
+    Value: !GetAtt LabtestProcessingqueueQueue.Outputs.QueueUrl
+    Condition : CreateQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-LabtestProcessingqueueQueueURL'
+   LabtestProcessingqueueQueueARN:
+    Description: 'LabtestProcessingqueueQueue ARN'
+    Condition : CreateQueue
+    Value: !GetAtt LabtestProcessingqueueQueue.Outputs.QueueARN
+    Export:
+      Name: !Sub '${AWS::StackName}-LabtestProcessingqueueQueueARN'
+   ReportGenerationqueueQueueURL:
+    Description: 'ReportGenerationqueueQueue URL'
+    Value: !GetAtt ReportGenerationqueueQueue.Outputs.QueueUrl
+    Condition : CreateQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-ReportGenerationqueueQueueURL'
+   ReportGenerationqueueQueueARN:
+    Description: 'ReportGenerationqueueQueue ARN'
+    Condition : CreateQueue
+    Value: !GetAtt ReportGenerationqueueQueue.Outputs.QueueARN
+    Export:
+      Name: !Sub '${AWS::StackName}-ReportGenerationqueueQueueARN'
