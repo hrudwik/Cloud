@@ -1,0 +1,19 @@
+Resources:
+  MyLambdaStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        EnterFunctionName: DHCNestedFunction
+        Stage: DEV
+      TemplateURL: https://samples3totestlambda.s3.us-east-2.amazonaws.com/BasicLambda.yml
+
+Outputs:
+  MyNestedStackRef:
+    Description: Reference of the nested stack in main stack
+    Value: !Ref MyLambdaStack
+  OutputNestedStaackFunctionRef:
+    Description: Reference of the lambda function
+    Value: !GetAtt MyLambdaStack.Outputs.FunctionRef
+  OutputNestedStaackFunctionARN:
+    Description: ARN of the lambda function
+    Value: !GetAtt MyLambdaStack.Outputs.FunctionARN
