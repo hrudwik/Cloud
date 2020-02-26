@@ -1,0 +1,18 @@
+{
+  "qsd-googlesheets/Googlesheets": {
+    "program": "/home/ubuntu/codebase/qcp_lab_data/go/container/datamapping/configdata",
+    "arguments": ["/home/ubuntu/codebase/qcp_lab_data/go/container/datamapping/config.yml"]
+  },
+  "unity-test-ec2-s3-bucket": {
+    "program": "/home/ubuntu/go/programs/prog1",
+    "arguments": ["ThisIsArg2_Subdir_Prog1"]
+  },
+  "unity-dev-ec2-s3-bucket/provisioningscript": {
+    "program": "/home/ubuntu/go/programs/provisioner",
+    "arguments": [ ]
+  },
+  "bioradtestbucket/DHC": {
+    "program": "/home/ec2-user/go/programs/testprogram",
+    "arguments": ["-n", "Hrudwik", "-t", "DHC"]
+  }
+}

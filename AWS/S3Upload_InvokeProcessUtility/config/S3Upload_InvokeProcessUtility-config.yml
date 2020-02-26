@@ -1,0 +1,14 @@
+service:
+     name: S3Upload_InvokeProcessUtility
+     port: 8087
+     timer: 60
+logfile: 
+     location: /home/ubuntu/go
+     name: S3Upload_InvokeProcessUtility.log
+configfile: 
+     location: /home/ubuntu/go/S3Upload_InvokeProcessUtility/config
+     name: InvokeProcess-config.json
+queue:
+     name: unity-test-ec2-s3-queue
+destinationLocation:
+     path: /home/ubuntu/saveLocation
