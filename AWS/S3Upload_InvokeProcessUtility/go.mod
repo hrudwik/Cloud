@@ -6,6 +6,6 @@ require (
 	github.com/aws/aws-sdk-go v1.27.1
 	github.com/johannesboyne/gofakes3 v0.0.0-20191228161223-9aee1c78a252
 	github.com/takama/daemon v0.11.0
-	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7
 )
